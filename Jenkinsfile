@@ -32,30 +32,45 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                sh '''
-                docker login -u daneshkabade45 -p danesh4545
-                docker push daneshkabade45/demo:latest
-                '''
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push daneshkabade45/demo:latest
+                    '''
+                }
             }
         }
 
         stage('Deploy to EKS') {
             steps {
-                sh '''
-                export KUBECONFIG=/var/lib/jenkins/.kube/config
-                aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
-                kubectl apply -f k8s-deploy.yml
-                '''
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    export AWS_DEFAULT_REGION=ap-southeast-1
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+
+                    aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
+                    kubectl apply -f k8s-deploy.yml
+                    '''
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'Deployment Successful 🎉'
+            echo '✅ Deployment Successful'
         }
         failure {
-            echo 'Pipeline Failed ❌'
+            echo '❌ Pipeline Failed'
         }
     }
 }
