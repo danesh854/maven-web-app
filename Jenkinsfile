@@ -1,25 +1,33 @@
 pipeline {
     agent any
     
+    environment {
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+    }
+
     tools{
         maven "maven-3.8.4"
     }
+
     stages {
         stage('clone') {
             steps {
               git 'https://github.com/danesh854/maven-web-app.git'
             }
         }
+
         stage('build'){
             steps{
-                 sh 'mvn clean package'
+                 sh 'mvn clean package -DskipTests'
             }
         }
+
         stage('docker image'){
             steps {
                 sh 'docker build -t ashokit/mavenwebapp .'
             }
         }
+
         stage('k8s deploy'){
             steps{
                sh 'kubectl apply -f k8s-deploy.yml'
