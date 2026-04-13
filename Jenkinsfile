@@ -3,35 +3,59 @@ pipeline {
 
     environment {
         KUBECONFIG = '/var/lib/jenkins/.kube/config'
+        AWS_DEFAULT_REGION = 'ap-southeast-1'
     }
 
-    tools{
+    tools {
         maven "maven-3.8.4"
     }
 
     stages {
-        stage('clone') {
+
+        stage('Clone Code') {
             steps {
-              git 'https://github.com/danesh854/maven-web-app.git'
+                git 'https://github.com/danesh854/maven-web-app.git'
             }
         }
 
-        stage('build'){
-            steps{
-                 sh 'mvn clean package -DskipTests'
-            }
-        }
-
-        stage('docker image'){
+        stage('Build WAR') {
             steps {
-                sh 'docker build -t ashokit/mavenwebapp .'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('k8s deploy'){
-            steps{
-               sh 'kubectl apply -f k8s-deploy.yml'
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ashokit/mavenwebapp:latest .'
             }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh '''
+                docker login -u <your-docker-username> -p <your-docker-password>
+                docker push ashokit/mavenwebapp:latest
+                '''
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                sh '''
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
+                aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
+                kubectl apply -f k8s-deploy.yml
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Deployment Successful 🎉'
+        }
+        failure {
+            echo 'Pipeline Failed ❌'
         }
     }
 }
