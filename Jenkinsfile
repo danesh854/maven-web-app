@@ -47,20 +47,11 @@ pipeline {
 
         stage('Deploy to EKS') {
             steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-creds'
-                ]]) {
-                    sh '''
-                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                    export AWS_DEFAULT_REGION=ap-southeast-1
-                    export KUBECONFIG=/var/lib/jenkins/.kube/config
-
-                    aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
-                    kubectl apply -f k8s-deploy.yml
-                    '''
-                }
+                sh '''
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
+                aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
+                kubectl apply -f k8s-deploy.yml
+                '''
             }
         }
     }
