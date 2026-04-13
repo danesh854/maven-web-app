@@ -26,15 +26,15 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ashokit/mavenwebapp:latest .'
+                sh 'docker build -t daneshkabade45/demo:latest .'
             }
         }
 
         stage('Push Docker Image') {
             steps {
                 sh '''
-                docker login -u <your-docker-username> -p <your-docker-password>
-                docker push ashokit/mavenwebapp:latest
+                docker login -u daneshkabade45 -p danesh4545
+                docker push daneshkabade45/demo:latest
                 '''
             }
         }
