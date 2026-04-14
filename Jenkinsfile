@@ -53,11 +53,22 @@ pipeline {
                 sh '''
                 export KUBECONFIG=/var/lib/jenkins/.kube/config
 
+                # Explicit AWS credentials (Fix for EKS auth issue)
+                export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
+                export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)
+                export AWS_DEFAULT_REGION=ap-southeast-1
+
+                # Update kubeconfig
                 aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
 
+                # Verify cluster access
+                kubectl get nodes
+
+                # Update deployment image
                 kubectl set image deployment/mavenwebappdeployment \
                 mavenwebappcontainer=$IMAGE_NAME:$IMAGE_TAG
 
+                # Wait for rollout
                 kubectl rollout status deployment/mavenwebappdeployment
                 '''
             }
@@ -66,7 +77,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ Deployment Successful'
+            echo '✅ Deployment Successful 🎉'
         }
         failure {
             echo '❌ Pipeline Failed'
