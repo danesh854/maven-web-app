@@ -34,11 +34,11 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'docker-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
                 )]) {
                     sh '''
-                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    echo $PASS | docker login -u $USER --password-stdin
                     docker push daneshkabade45/demo:latest
                     '''
                 }
@@ -48,11 +48,7 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh '''
-                export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
-                export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)
-                export AWS_DEFAULT_REGION=ap-southeast-1
                 export KUBECONFIG=/var/lib/jenkins/.kube/config
-
                 aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
                 kubectl apply -f k8s-deploy.yml
                 '''
