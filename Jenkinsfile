@@ -62,10 +62,10 @@ pipeline {
                 echo "🔄 Updating kubeconfig..."
                 aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
 
-                echo "🔍 Verifying cluster access..."
-                kubectl get nodes
+                echo "📦 Applying Kubernetes manifests (create if not exists)..."
+                kubectl apply -f k8s-deploy.yml
 
-                echo "🚀 Deploying new image..."
+                echo "🚀 Updating deployment image..."
                 kubectl set image deployment/mavenwebappdeployment \
                 mavenwebappcontainer=$IMAGE_NAME:$IMAGE_TAG
 
