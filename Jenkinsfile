@@ -4,6 +4,8 @@ pipeline {
     environment {
         KUBECONFIG = '/var/lib/jenkins/.kube/config'
         AWS_DEFAULT_REGION = 'ap-southeast-1'
+        IMAGE_NAME = 'daneshkabade45/demo'
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     tools {
@@ -26,7 +28,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t daneshkabade45/demo:latest .'
+                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
             }
         }
 
@@ -39,7 +41,8 @@ pipeline {
                 )]) {
                     sh '''
                     echo $PASS | docker login -u $USER --password-stdin
-                    docker push daneshkabade45/demo:latest
+                    docker push $IMAGE_NAME:$IMAGE_TAG
+                    docker logout
                     '''
                 }
             }
@@ -49,8 +52,13 @@ pipeline {
             steps {
                 sh '''
                 export KUBECONFIG=/var/lib/jenkins/.kube/config
+
                 aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
-                kubectl apply -f k8s-deploy.yml
+
+                kubectl set image deployment/mavenwebappdeployment \
+                mavenwebappcontainer=$IMAGE_NAME:$IMAGE_TAG
+
+                kubectl rollout status deployment/mavenwebappdeployment
                 '''
             }
         }
