@@ -51,19 +51,25 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh '''
-                export KUBECONFIG=/var/lib/jenkins/.kube/config
+                set -e
 
-                # IAM role will be used automatically (NO aws configure needed)
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
+                export AWS_DEFAULT_REGION=ap-southeast-1
+
+                echo "🔍 Checking AWS identity..."
+                aws sts get-caller-identity
+
+                echo "🔄 Updating kubeconfig..."
                 aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
 
-                # Verify access
+                echo "🔍 Verifying cluster access..."
                 kubectl get nodes
 
-                # Update deployment with new image
+                echo "🚀 Deploying new image..."
                 kubectl set image deployment/mavenwebappdeployment \
                 mavenwebappcontainer=$IMAGE_NAME:$IMAGE_TAG
 
-                # Wait for rollout to complete
+                echo "⏳ Waiting for rollout..."
                 kubectl rollout status deployment/mavenwebappdeployment
                 '''
             }
