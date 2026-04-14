@@ -1,13 +1,45 @@
 node {
+
     def mvnPath
-    
-    stage('git clone process') {
-        git 'https://github.com/ashokitschool/maven-web-app.git'
+    def IMAGE = "daneshkabade45/demo:${env.BUILD_NUMBER}"
+
+    stage('Git Clone') {
+        git 'https://github.com/danesh854/maven-web-app.git'
     }
-    
-    stage('Maven build'){
-        def mvnHome = tool name:'maven', type:"maven";
-        mvnPath = "${mvnHome}/bin/mvn";
-        sh "${mvnPath} clean package"
-    }    
+
+    stage('Maven Build') {
+        def mvnHome = tool name: 'maven-3.8.4', type: 'maven'
+        mvnPath = "${mvnHome}/bin/mvn"
+        sh "${mvnPath} clean package -DskipTests"
+    }
+
+    stage('Build Docker Image') {
+        sh "docker build -t ${IMAGE} ."
+    }
+
+    stage('Push Docker Image') {
+        withCredentials([usernamePassword(
+            credentialsId: 'docker-creds',
+            usernameVariable: 'USER',
+            passwordVariable: 'PASS'
+        )]) {
+            sh """
+            echo \$PASS | docker login -u \$USER --password-stdin
+            docker push ${IMAGE}
+            docker logout
+            """
+        }
+    }
+
+    stage('Deploy to EKS') {
+        sh """
+        export KUBECONFIG=/var/lib/jenkins/.kube/config
+        aws eks update-kubeconfig --region ap-southeast-1 --name my-cluster
+
+        kubectl set image deployment/mavenwebappdeployment \
+        mavenwebappcontainer=${IMAGE}
+
+        kubectl rollout status deployment/mavenwebappdeployment
+        """
+    }
 }
